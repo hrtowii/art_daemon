@@ -39,3 +39,6 @@ index
 # Added by cargo
 
 /target
+
+output.txt
+album_art
