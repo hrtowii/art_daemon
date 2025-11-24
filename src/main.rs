@@ -1,12 +1,8 @@
 use futures_util::{SinkExt, StreamExt};
-use reqwest::Client;
-use serde_json::{Deserializer, Number, Result, Serializer, Value, json};
+use serde_json::Value;
 use tokio::fs;
-use tokio::fs::File;
 use tokio::time::Duration;
-use tokio::time::Interval;
 use tokio::{task, time};
-use tokio_tungstenite::{WebSocketStream, accept_async, client_async};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 const ID: &str = "413331641109446656";
 const LANYARD: &str = "wss://api.lanyard.rest/socket";
@@ -63,19 +59,19 @@ async fn main() {
         while let Some(msg) = read.next().await {
             if let Ok(Message::Text(txt)) = msg {
                 let json: Value = serde_json::from_str(&txt).unwrap();
-                if json["op"] == 0 {
-                    && let Some(spotify) = json["d"]["spotify"].as_object() {
-                        if let (Some(art_url), Some(artist), Some(title)) = (
+                if json["op"] == 0
+                    && let Some(spotify) = json["d"]["spotify"].as_object()
+                        && let (Some(art_url), Some(artist), Some(title)) = (
                             spotify.get("album_art_url").and_then(|v| v.as_str()),
                             spotify.get("artist").and_then(|v| v.as_str()),
-                            spotify.get("title").and_then(|v| v.as_str()),
+                            spotify.get("song").and_then(|v| v.as_str()),
                         ) {
-                            println!("{}, {}, {}", art_url, artist, title);
-                            fs::create_dir("./album_art").await.unwrap();
+                            // println!("{}, {}, {}", art_url, artist, title);
+                            fs::create_dir_all("./album_art").await.unwrap();
                             match reqwest::get(art_url).await {
                                 Ok(resp) => {
                                     let bytes = resp.bytes().await.unwrap();
-                                    fs::write("./album_art/cover.jpg", bytes).await.unwrap();
+                                    fs::write("./album_art/current.jpg", bytes).await.unwrap();
                                 }
                                 Err(_) => println!("err downloading"),
                             }
@@ -83,8 +79,6 @@ async fn main() {
                                 .await
                                 .unwrap();
                         }
-                    }
-                }
             }
         }
     });
