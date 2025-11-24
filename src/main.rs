@@ -44,41 +44,31 @@ async fn main() {
             ping(&mut write).await;
         }
     });
-    //     "spotify": Object {
-    //     "album": String("Pinkerton - Deluxe Edition"),
-    //     "album_art_url": String("https://i.scdn.co/image/ab67616d0000b273b34530ac4a80275e3ff2faab"),
-    //     "artist": String("Weezer"),
-    //     "song": String("I Just Threw Out The Love Of My Dreams"),
-    //     "timestamps": Object {
-    //         "end": Number(1764006422968),
-    //         "start": Number(1764006265008),
-    //     },
-    //     "track_id": String("35SRuRfp5BvD1yArmXKNHO"),
-    // },
     let polling = task::spawn(async move {
         while let Some(msg) = read.next().await {
             if let Ok(Message::Text(txt)) = msg {
                 let json: Value = serde_json::from_str(&txt).unwrap();
                 if json["op"] == 0
                     && let Some(spotify) = json["d"]["spotify"].as_object()
-                        && let (Some(art_url), Some(artist), Some(title)) = (
-                            spotify.get("album_art_url").and_then(|v| v.as_str()),
-                            spotify.get("artist").and_then(|v| v.as_str()),
-                            spotify.get("song").and_then(|v| v.as_str()),
-                        ) {
-                            // println!("{}, {}, {}", art_url, artist, title);
-                            fs::create_dir_all("./album_art").await.unwrap();
-                            match reqwest::get(art_url).await {
-                                Ok(resp) => {
-                                    let bytes = resp.bytes().await.unwrap();
-                                    fs::write("./album_art/current.jpg", bytes).await.unwrap();
-                                }
-                                Err(_) => println!("err downloading"),
-                            }
-                            fs::write("./output.txt", format!("{}\n{}", artist, title))
-                                .await
-                                .unwrap();
+                    && let (Some(art_url), Some(artist), Some(title)) = (
+                        spotify.get("album_art_url").and_then(|v| v.as_str()),
+                        spotify.get("artist").and_then(|v| v.as_str()),
+                        spotify.get("song").and_then(|v| v.as_str()),
+                    )
+                {
+                    // println!("{}, {}, {}", art_url, artist, title);
+                    fs::create_dir_all("./album_art").await.unwrap();
+                    match reqwest::get(art_url).await {
+                        Ok(resp) => {
+                            let bytes = resp.bytes().await.unwrap();
+                            fs::write("./album_art/current.jpg", bytes).await.unwrap();
                         }
+                        Err(_) => println!("err downloading"),
+                    }
+                    fs::write("./output.txt", format!("{}\n{}", artist, title))
+                        .await
+                        .unwrap();
+                }
             }
         }
     });
